@@ -76,6 +76,17 @@ jobs:
           VERSION_NAME: 1.0.${{ github.run_number }}
         run: gradle assembleRelease --no-daemon --stacktrace 2>&1 | tee "$GITHUB_WORKSPACE/build.log"
 
+      - name: Print RootEncoder API (debug, runs only if the build fails)
+        if: failure()
+        run: |
+          mkdir -p /tmp/re && cd /tmp/re
+          LIB=$(find "$HOME/.gradle/caches/modules-2" -name "library-2.4.7.aar" | head -n 1)
+          ENC=$(find "$HOME/.gradle/caches/modules-2" -name "encoder-2.4.7.aar" | head -n 1)
+          [ -n "$LIB" ] && unzip -oq "$LIB" classes.jar -d lib
+          [ -n "$ENC" ] && unzip -oq "$ENC" classes.jar -d enc
+          CP=$(ls lib/classes.jar enc/classes.jar 2>/dev/null | paste -sd: -)
+          javap -public -cp "$CP" com.pedro.library.base.FromFileBase com.pedro.library.rtmp.RtmpFromFile com.pedro.encoder.input.decoder.VideoDecoderInterface com.pedro.encoder.input.decoder.AudioDecoderInterface || true
+
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
